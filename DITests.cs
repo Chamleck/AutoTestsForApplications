@@ -1,19 +1,40 @@
 using AutoTestsForApplications.DI;
+using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AutoTestsForApplications;
 
+// тестовый дублёр IEmailSender — не отправляет реальные письма,
+// а просто запоминает, с чем его вызвали
+public class FakeEmailSender : IEmailSender
+{
+    public string? To;
+    public string? Text;
+    public int CallCount;
+
+    public void Send(string to, string text)
+    {
+        To = to;
+        Text = text;
+        CallCount++;
+    }
+}
+
 public class DITests
 {
     [Test]
-    public void Test1_ManualInjection_NotifierUsesInjectedSender()
+    public void Test1_ManualInjection_NotifierCallsSenderExactlyOnce()
     {
-        // зависимость создаётся снаружи и передаётся в конструктор явно
-        IEmailSender sender = new EmailSender();
-        var notifier = new UserNotifier(sender);
+        var fakeSender = new FakeEmailSender();
+        var notifier = new UserNotifier(fakeSender);
 
-        // просто проверяем, что вызов не падает и проходит через инжектированную зависимость
-        Assert.DoesNotThrow(() => notifier.Notify(42));
+        notifier.Notify(42);
+
+        // проверяем реальное взаимодействие, а не просто "не упало" —
+        // это и есть смысл DI: подменить реальную зависимость на тестовую и проверить вызов
+        fakeSender.CallCount.Should().Be(1);
+        fakeSender.To.Should().Be("user@mail.com");
+        fakeSender.Text.Should().Be("Hello, user 42!");
     }
 
     [Test]
@@ -21,9 +42,7 @@ public class DITests
     {
         var services = new ServiceCollection();
 
-        // регистрируем: "когда кто-то просит IEmailSender — дай EmailSender"
         services.AddTransient<IEmailSender, EmailSender>();
-        // регистрируем сам UserNotifier — контейнер сам подставит IEmailSender в конструктор
         services.AddTransient<UserNotifier>();
 
         using ServiceProvider provider = services.BuildServiceProvider();

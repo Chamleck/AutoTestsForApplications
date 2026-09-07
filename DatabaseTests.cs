@@ -1,29 +1,46 @@
 using AutoTestsForApplications.Database;
-using AutoTestsForApplications.DTO.Database;
-using Dapper;
+using AutoTestsForApplications.Interfaces.DapperInterfaces;
 using FluentAssertions;
 using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AutoTestsForApplications;
 
 public class DatabaseTests
 {
-    private SqliteConnection _connection;
+    private ServiceProvider _provider;
+    private string _dbPath;
 
     [OneTimeSetUp]
     public async Task Setup()
     {
-        _connection = new SqliteConnection("Data Source=:memory:");
-        await _connection.OpenAsync(); // база начинает существовать только после Open
+        // файловая база — репозитории открывают отдельные соединения на каждый вызов,
+        // поэтому база должна реально существовать на диске между вызовами
+        _dbPath = Path.Combine(AppContext.BaseDirectory, "marketplace.db");
+        if (File.Exists(_dbPath))
+        {
+            File.Delete(_dbPath);
+        }
 
-        await DatabaseInitializer.InitializeAsync(_connection);
+        string connectionString = $"Data Source={_dbPath};";
+
+        // сидинг делаем один раз через отдельное соединение, затем закрываем его
+        await using (var seedConnection = new SqliteConnection(connectionString))
+        {
+            await seedConnection.OpenAsync();
+            await DatabaseInitializer.InitializeAsync(seedConnection);
+        }
+
+        var services = new ServiceCollection();
+        services.AddDataAccess(connectionString);
+        _provider = services.BuildServiceProvider();
     }
 
     [Test]
     public async Task Test2_1_GetAllCategories_ShouldReturnSixCategories()
     {
-        IEnumerable<CategoryDTO> categories =
-            await _connection.QueryAsync<CategoryDTO>("SELECT * FROM Categories");
+        var repo = _provider.GetRequiredService<ICategoryRepository>();
+        var categories = await repo.GetAllAsync();
 
         categories.Should().HaveCount(6);
     }
@@ -31,11 +48,8 @@ public class DatabaseTests
     [Test]
     public async Task Test2_2_GetProductById_ShouldReturnExpectedProduct()
     {
-        const int productId = 1;
-
-        ProductDTO? product = await _connection.QuerySingleOrDefaultAsync<ProductDTO>(
-            "SELECT * FROM Products WHERE Id = @Id",
-            new { Id = productId });
+        var repo = _provider.GetRequiredService<IProductRepository>();
+        var product = await repo.GetByIdAsync(1);
 
         product.Should().NotBeNull();
         product!.Name.Should().Be("iPhone 15");
@@ -47,36 +61,69 @@ public class DatabaseTests
     [Test]
     public async Task Test2_3_GetOrderForUser_ShouldContainExpectedItems()
     {
-        const int userId = 1;
-        const int orderId = 1;
+        var orderRepo = _provider.GetRequiredService<IOrderRepository>();
+        var orderItemRepo = _provider.GetRequiredService<IOrderItemRepository>();
+        var productRepo = _provider.GetRequiredService<IProductRepository>();
 
-        // сначала убеждаемся, что заказ реально принадлежит этому юзеру
-        OrderDTO? order = await _connection.QuerySingleOrDefaultAsync<OrderDTO>(
-            "SELECT * FROM Orders WHERE Id = @OrderId AND UserId = @UserId",
-            new { OrderId = orderId, UserId = userId });
-
+        var order = await orderRepo.GetByIdAsync(1);
         order.Should().NotBeNull();
+        order!.UserId.Should().Be(1);
 
-        // джойним OrderItems с Products, чтобы сразу получить название товара
-        IEnumerable<OrderItemWithProductNameDTO> items = await _connection.QueryAsync<OrderItemWithProductNameDTO>(
-            """
-            SELECT oi.ProductId, p.Name AS ProductName, oi.Quantity, oi.UnitPrice
-            FROM OrderItems oi
-            JOIN Products p ON p.Id = oi.ProductId
-            WHERE oi.OrderId = @OrderId
-            """,
-            new { OrderId = orderId });
+        var items = (await orderItemRepo.GetByOrderIdAsync(order.Id)).ToList();
+        items.Should().HaveCount(2);
 
-        var itemsList = items.ToList();
+        var productNames = new List<string>();
+        foreach (var item in items)
+        {
+            var product = await productRepo.GetByIdAsync(item.ProductId);
+            product.Should().NotBeNull();
+            productNames.Add(product!.Name);
+        }
 
-        itemsList.Should().HaveCount(2);
-        itemsList.Should().Contain(i => i.ProductName == "iPhone 15" && i.Quantity == 1);
-        itemsList.Should().Contain(i => i.ProductName == "Anker PowerBank" && i.Quantity == 1);
+        productNames.Should().BeEquivalentTo(new[] { "iPhone 15", "Anker PowerBank" });
+    }
+
+    [Test]
+    public async Task Test2_AccessoriesBuyers_ShouldLiveInDifferentCities()
+    {
+        var orderItemRepo = _provider.GetRequiredService<IOrderItemRepository>();
+
+        var locations = (await orderItemRepo.GetPurchaseLocationsByCategoryAsync("Аксессуары")).ToList();
+
+        var distinctCities = locations.Select(l => l.City).Distinct().ToList();
+        distinctCities.Count.Should().BeGreaterThan(1);
+    }
+
+    [Test]
+    public async Task Test3_TvBuyers_ShouldAlsoBuyAccessories()
+    {
+        var orderItemRepo = _provider.GetRequiredService<IOrderItemRepository>();
+
+        var tvBuyers = (await orderItemRepo.GetPurchaseLocationsByCategoryAsync("Телевизоры"))
+            .Select(l => l.UserId)
+            .ToList();
+
+        var accessoryBuyers = (await orderItemRepo.GetPurchaseLocationsByCategoryAsync("Аксессуары"))
+            .Select(l => l.UserId)
+            .ToList();
+
+        // намеренно строгая проверка: по факту нет ни одного юзера, купившего и то и другое —
+        // тест должен быть красным, это подтверждено препodом в чате как ожидаемое поведение
+        tvBuyers.Should().BeSubsetOf(accessoryBuyers);
     }
 
     [OneTimeTearDown]
     public void TearDown()
     {
-        _connection.Dispose();
+        _provider.Dispose();
+
+        // SQLite пулит соединения на уровне процесса — файл остаётся залоченным
+        // даже после Dispose() отдельных подключений, пока пул не очищен явно
+        SqliteConnection.ClearAllPools();
+
+        if (File.Exists(_dbPath))
+        {
+            File.Delete(_dbPath);
+        }
     }
 }
