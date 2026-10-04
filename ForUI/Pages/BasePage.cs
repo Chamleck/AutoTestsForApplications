@@ -24,8 +24,8 @@ public abstract class BasePage
             await UniqueElement.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = OpenedCheckTimeoutMs });
             return true;
         }
-        // отдельного типа для таймаута нет, поэтому отличаем его по тексту; остальные ошибки пробрасываются
-        catch (PlaywrightException ex) when (ex.Message.Contains("Timeout"))
+        // Playwright сообщает о таймауте стандартным System.TimeoutException
+        catch (TimeoutException)
         {
             return false;
         }
