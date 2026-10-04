@@ -2,17 +2,16 @@ using Microsoft.Playwright;
 
 namespace AutoTestsForApplications.ForUI.Pages.SauceDemo;
 
-public class LoginPage
+public class LoginPage : BasePage
 {
-    private readonly IPage Page;
-
     private ILocator UsernameTextBox => Page.GetByPlaceholder("Username");
     private ILocator PasswordTextBox => Page.GetByPlaceholder("Password");
     private ILocator LoginButton => Page.GetByRole(AriaRole.Button, new() { Name = "Login" });
 
-    public LoginPage(IPage page)
+    protected override ILocator UniqueElement => LoginButton;
+
+    public LoginPage(IPage page) : base(page)
     {
-        Page = page;
     }
 
     public async Task OpenAsync()

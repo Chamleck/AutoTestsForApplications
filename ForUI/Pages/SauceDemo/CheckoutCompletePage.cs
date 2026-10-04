@@ -2,15 +2,14 @@ using Microsoft.Playwright;
 
 namespace AutoTestsForApplications.ForUI.Pages.SauceDemo;
 
-public class CheckoutCompletePage
+public class CheckoutCompletePage : BasePage
 {
-    private readonly IPage Page;
-
     private ILocator CompleteHeader => Page.Locator(".complete-header");
 
-    public CheckoutCompletePage(IPage page)
+    protected override ILocator UniqueElement => Page.GetByText("Checkout: Complete!", new() { Exact = true });
+
+    public CheckoutCompletePage(IPage page) : base(page)
     {
-        Page = page;
     }
 
     public async Task<string> GetHeaderTextAsync()

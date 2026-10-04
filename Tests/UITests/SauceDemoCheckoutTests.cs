@@ -18,8 +18,10 @@ public class SauceDemoCheckoutTests : BaseTest
         var completePage = new CheckoutCompletePage(Page);
 
         await loginPage.OpenAsync();
+        (await loginPage.IsOpenedAsync()).Should().BeTrue("должна открыться страница логина");
+
         await loginPage.LoginAsync("standard_user", "secret_sauce");
-        (await inventoryPage.IsPageOpenedAsync()).Should().BeTrue();
+        (await inventoryPage.IsOpenedAsync()).Should().BeTrue("после логина должна открыться страница Products");
 
         // эталонные цены читаем со страницы Products, в тесте они не захардкожены
         var expectedPrices = new Dictionary<string, decimal>();
@@ -30,6 +32,7 @@ public class SauceDemoCheckoutTests : BaseTest
         }
 
         await inventoryPage.OpenCartAsync();
+        (await cartPage.IsOpenedAsync()).Should().BeTrue("после клика по корзине должна открыться страница Your Cart");
 
         (await cartPage.GetItemNamesAsync()).Should().BeEquivalentTo(products);
         foreach (string product in products)
@@ -38,7 +41,11 @@ public class SauceDemoCheckoutTests : BaseTest
         }
 
         await cartPage.ClickCheckoutAsync();
-        await checkoutInfoPage.FillFormAndContinueAsync("Nick", "Tester", "11000");
+        (await checkoutInfoPage.IsOpenedAsync()).Should().BeTrue("после Checkout должна открыться форма Your Information");
+
+        await checkoutInfoPage.FillFormAsync("Nick", "Tester", "11000");
+        await checkoutInfoPage.ClickContinueAsync();
+        (await overviewPage.IsOpenedAsync()).Should().BeTrue("после Continue должна открыться страница Overview");
 
         (await overviewPage.GetItemNamesAsync()).Should().BeEquivalentTo(products);
         foreach (string product in products)
@@ -47,6 +54,7 @@ public class SauceDemoCheckoutTests : BaseTest
         }
 
         await overviewPage.ClickFinishAsync();
+        (await completePage.IsOpenedAsync()).Should().BeTrue("после Finish должна открыться страница Complete");
 
         (await completePage.GetHeaderTextAsync()).Should().Contain("Thank you for your order!");
     }
