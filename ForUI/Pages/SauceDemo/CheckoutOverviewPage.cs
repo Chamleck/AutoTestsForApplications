@@ -3,19 +3,21 @@ using Microsoft.Playwright;
 
 namespace AutoTestsForApplications.ForUI.Pages.SauceDemo;
 
-public class CheckoutOverviewPage
+public class CheckoutOverviewPage : BasePage
 {
-    private readonly IPage Page;
-
     private ILocator ItemNames => Page.Locator(".cart_item .inventory_item_name");
     private ILocator FinishButton => Page.GetByRole(AriaRole.Button, new() { Name = "Finish" });
 
     private ILocator Item(string productName) =>
         Page.Locator(".cart_item").Filter(new() { HasText = productName });
 
-    public CheckoutOverviewPage(IPage page)
+    private ILocator ItemPrice(string productName) =>
+        Item(productName).Locator(".inventory_item_price");
+
+    protected override ILocator UniqueElement => Page.GetByText("Checkout: Overview", new() { Exact = true });
+
+    public CheckoutOverviewPage(IPage page) : base(page)
     {
-        Page = page;
     }
 
     public async Task<IReadOnlyList<string>> GetItemNamesAsync()
@@ -25,9 +27,7 @@ public class CheckoutOverviewPage
 
     public async Task<decimal> GetItemPriceAsync(string productName)
     {
-        string? priceText = await Item(productName)
-            .Locator(".inventory_item_price")
-            .TextContentAsync();
+        string? priceText = await ItemPrice(productName).TextContentAsync();
 
         return PriceParser.Parse(priceText);
     }
@@ -35,6 +35,5 @@ public class CheckoutOverviewPage
     public async Task ClickFinishAsync()
     {
         await FinishButton.ClickAsync();
-        await Page.WaitForURLAsync("**/checkout-complete.html");
     }
 }

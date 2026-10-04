@@ -11,6 +11,8 @@ public class SelectMenuTests : BaseTest
         var selectMenuPage = new SelectMenuPage(Page);
 
         await selectMenuPage.OpenAsync();
+        (await selectMenuPage.IsOpenedAsync()).Should().BeTrue("должна открыться страница Select Menu");
+
         await selectMenuPage.SelectOptionAsync("Prof.");
 
         (await selectMenuPage.GetSelectedOptionAsync()).Should().Be("Prof.");
