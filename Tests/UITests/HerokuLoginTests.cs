@@ -11,6 +11,8 @@ public class HerokuLoginTests : BaseTest
         var loginPage = new LoginPage(Page);
 
         await loginPage.OpenAsync();
+        (await loginPage.IsOpenedAsync()).Should().BeTrue("должна открыться страница логина");
+
         await loginPage.LoginAsync("wrong-username", "wrong-password");
 
         (await loginPage.GetFlashMessageAsync()).Should().Contain("Your username is invalid!");
