@@ -1,5 +1,6 @@
 using AutoTestsForApplications.ForUI.Pages.Heroku;
 using FluentAssertions;
+using Microsoft.Playwright;
 
 namespace AutoTestsForApplications.Tests.UITests;
 
@@ -11,7 +12,7 @@ public class HerokuLoginTests : BaseTest
         var loginPage = new LoginPage(Page);
 
         await loginPage.OpenAsync();
-        (await loginPage.IsOpenedAsync()).Should().BeTrue("должна открыться страница логина");
+        await Assertions.Expect(loginPage.UniqueElement).ToBeVisibleAsync();
 
         await loginPage.LoginAsync("wrong-username", "wrong-password");
 

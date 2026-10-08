@@ -2,17 +2,21 @@ using Microsoft.Playwright;
 
 namespace AutoTestsForApplications.ForUI.Pages.Heroku;
 
-public class LoginPage : BasePage
+public class LoginPage
 {
+    private readonly IPage Page;
+
     private ILocator UsernameTextBox => Page.GetByRole(AriaRole.Textbox, new() { Name = "Username" });
     private ILocator PasswordTextBox => Page.GetByRole(AriaRole.Textbox, new() { Name = "Password" });
     private ILocator LoginButton => Page.GetByRole(AriaRole.Button, new() { Name = "Login" });
     private ILocator FlashMessage => Page.Locator("#flash");
 
-    protected override ILocator UniqueElement => LoginButton;
+    // элемент, который есть только на этой странице; тест проверяет его видимость через Expect
+    public ILocator UniqueElement => LoginButton;
 
-    public LoginPage(IPage page) : base(page)
+    public LoginPage(IPage page)
     {
+        Page = page;
     }
 
     public async Task OpenAsync()
