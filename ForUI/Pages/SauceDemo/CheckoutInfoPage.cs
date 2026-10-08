@@ -2,17 +2,21 @@ using Microsoft.Playwright;
 
 namespace AutoTestsForApplications.ForUI.Pages.SauceDemo;
 
-public class CheckoutInfoPage : BasePage
+public class CheckoutInfoPage
 {
+    private readonly IPage Page;
+
     private ILocator FirstNameTextBox => Page.GetByPlaceholder("First Name");
     private ILocator LastNameTextBox => Page.GetByPlaceholder("Last Name");
     private ILocator PostalCodeTextBox => Page.GetByPlaceholder("Zip/Postal Code");
     private ILocator ContinueButton => Page.GetByRole(AriaRole.Button, new() { Name = "Continue" });
 
-    protected override ILocator UniqueElement => Page.GetByText("Checkout: Your Information", new() { Exact = true });
+    // элемент, который есть только на этой странице; тест проверяет его видимость через Expect
+    public ILocator UniqueElement => Page.GetByText("Checkout: Your Information", new() { Exact = true });
 
-    public CheckoutInfoPage(IPage page) : base(page)
+    public CheckoutInfoPage(IPage page)
     {
+        Page = page;
     }
 
     // сайт требует все три поля, иначе покажет ошибку валидации

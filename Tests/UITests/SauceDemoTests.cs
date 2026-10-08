@@ -1,5 +1,5 @@
 using AutoTestsForApplications.ForUI.Pages.SauceDemo;
-using FluentAssertions;
+using Microsoft.Playwright;
 
 namespace AutoTestsForApplications.Tests.UITests;
 
@@ -14,6 +14,6 @@ public class SauceDemoTests : BaseTest
         await loginPage.OpenAsync();
         await loginPage.LoginAsync("standard_user", "secret_sauce");
 
-        (await inventoryPage.IsOpenedAsync()).Should().BeTrue("после логина должна открыться страница Products");
+        await Assertions.Expect(inventoryPage.UniqueElement).ToBeVisibleAsync();
     }
 }

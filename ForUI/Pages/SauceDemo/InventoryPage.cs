@@ -3,8 +3,10 @@ using Microsoft.Playwright;
 
 namespace AutoTestsForApplications.ForUI.Pages.SauceDemo;
 
-public class InventoryPage : BasePage
+public class InventoryPage
 {
+    private readonly IPage Page;
+
     private ILocator ShoppingCartLink => Page.Locator(".shopping_cart_link");
 
     // локаторы, зависящие от названия товара, - методы-фабрики; селекторы живут только здесь
@@ -17,10 +19,12 @@ public class InventoryPage : BasePage
     private ILocator ProductPrice(string productName) =>
         ProductCard(productName).Locator(".inventory_item_price");
 
-    protected override ILocator UniqueElement => Page.GetByText("Products", new() { Exact = true });
+    // элемент, который есть только на этой странице; тест проверяет его видимость через Expect
+    public ILocator UniqueElement => Page.GetByText("Products", new() { Exact = true });
 
-    public InventoryPage(IPage page) : base(page)
+    public InventoryPage(IPage page)
     {
+        Page = page;
     }
 
     public async Task AddToCartAsync(string productName)

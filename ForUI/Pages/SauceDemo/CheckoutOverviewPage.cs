@@ -3,8 +3,10 @@ using Microsoft.Playwright;
 
 namespace AutoTestsForApplications.ForUI.Pages.SauceDemo;
 
-public class CheckoutOverviewPage : BasePage
+public class CheckoutOverviewPage
 {
+    private readonly IPage Page;
+
     private ILocator ItemNames => Page.Locator(".cart_item .inventory_item_name");
     private ILocator FinishButton => Page.GetByRole(AriaRole.Button, new() { Name = "Finish" });
 
@@ -14,10 +16,12 @@ public class CheckoutOverviewPage : BasePage
     private ILocator ItemPrice(string productName) =>
         Item(productName).Locator(".inventory_item_price");
 
-    protected override ILocator UniqueElement => Page.GetByText("Checkout: Overview", new() { Exact = true });
+    // элемент, который есть только на этой странице; тест проверяет его видимость через Expect
+    public ILocator UniqueElement => Page.GetByText("Checkout: Overview", new() { Exact = true });
 
-    public CheckoutOverviewPage(IPage page) : base(page)
+    public CheckoutOverviewPage(IPage page)
     {
+        Page = page;
     }
 
     public async Task<IReadOnlyList<string>> GetItemNamesAsync()
