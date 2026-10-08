@@ -1,5 +1,6 @@
 using AutoTestsForApplications.ForUI.Pages.DemoQA;
 using FluentAssertions;
+using Microsoft.Playwright;
 
 namespace AutoTestsForApplications.Tests.UITests;
 
@@ -11,7 +12,7 @@ public class SelectMenuTests : BaseTest
         var selectMenuPage = new SelectMenuPage(Page);
 
         await selectMenuPage.OpenAsync();
-        (await selectMenuPage.IsOpenedAsync()).Should().BeTrue("должна открыться страница Select Menu");
+        await Assertions.Expect(selectMenuPage.UniqueElement).ToBeVisibleAsync();
 
         await selectMenuPage.SelectOptionAsync("Prof.");
 

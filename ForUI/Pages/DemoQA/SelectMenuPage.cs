@@ -2,8 +2,10 @@ using Microsoft.Playwright;
 
 namespace AutoTestsForApplications.ForUI.Pages.DemoQA;
 
-public class SelectMenuPage : BasePage
+public class SelectMenuPage
 {
+    private readonly IPage Page;
+
     // "Select One" - кастомный react-select, не нативный <select>
     private ILocator SelectOneDropdown => Page.Locator("#selectOne");
 
@@ -13,10 +15,12 @@ public class SelectMenuPage : BasePage
     private ILocator Option(string optionText) =>
         SelectOneDropdown.GetByText(optionText, new() { Exact = true });
 
-    protected override ILocator UniqueElement => SelectOneDropdown;
+    // элемент, который есть только на этой странице; тест проверяет его видимость через Expect
+    public ILocator UniqueElement => SelectOneDropdown;
 
-    public SelectMenuPage(IPage page) : base(page)
+    public SelectMenuPage(IPage page)
     {
+        Page = page;
     }
 
     public async Task OpenAsync()

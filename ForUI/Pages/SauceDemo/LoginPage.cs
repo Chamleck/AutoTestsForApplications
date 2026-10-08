@@ -2,16 +2,20 @@ using Microsoft.Playwright;
 
 namespace AutoTestsForApplications.ForUI.Pages.SauceDemo;
 
-public class LoginPage : BasePage
+public class LoginPage
 {
+    private readonly IPage Page;
+
     private ILocator UsernameTextBox => Page.GetByPlaceholder("Username");
     private ILocator PasswordTextBox => Page.GetByPlaceholder("Password");
     private ILocator LoginButton => Page.GetByRole(AriaRole.Button, new() { Name = "Login" });
 
-    protected override ILocator UniqueElement => LoginButton;
+    // элемент, который есть только на этой странице; тест проверяет его видимость через Expect
+    public ILocator UniqueElement => LoginButton;
 
-    public LoginPage(IPage page) : base(page)
+    public LoginPage(IPage page)
     {
+        Page = page;
     }
 
     public async Task OpenAsync()
