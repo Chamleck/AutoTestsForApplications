@@ -1,3 +1,4 @@
+using AutoTestsForApplications.DataProviders;
 using AutoTestsForApplications.ForUI.Pages.SauceDemo;
 using FluentAssertions;
 using Microsoft.Playwright;
@@ -10,6 +11,7 @@ public class SauceDemoCheckoutTests : BaseTest
     public async Task Checkout_TwoItems_ShowsThankYouMessage()
     {
         string[] products = { "Sauce Labs Backpack", "Sauce Labs Bolt T-Shirt" };
+        var user = SauceDemoUserProvider.GetUser("standard_user");
 
         var loginPage = new LoginPage(Page);
         var inventoryPage = new InventoryPage(Page);
@@ -21,7 +23,7 @@ public class SauceDemoCheckoutTests : BaseTest
         await loginPage.OpenAsync();
         await Assertions.Expect(loginPage.UniqueElement).ToBeVisibleAsync();
 
-        await loginPage.LoginAsync("standard_user", "secret_sauce");
+        await loginPage.LoginAsync(user.Username, user.Password);
         await Assertions.Expect(inventoryPage.UniqueElement).ToBeVisibleAsync();
 
         // эталонные цены читаем со страницы Products, в тесте они не захардкожены
